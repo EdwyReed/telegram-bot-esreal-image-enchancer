@@ -1,4 +1,7 @@
 import base64
+from datetime import datetime
+
+import aiohttp
 import replicate
 
 from pyrogram import Client, filters
@@ -52,13 +55,22 @@ async def start(client, message: Message):
 async def photo_handler(client, message: Message):
     user_id = message.from_user.id
     if user_id not in USERS_WHITELIST:
-        await message.reply_text("Вибачте, але я працюю лише зі своїми Хозяїнами! Але ви можете звернутися до них задля оплати доступу до мене🥰💰")
+        await message.reply_text(
+            "Вибачте, але я працюю лише зі своїми Хозяїнами! Але ви можете звернутися до них задля оплати доступу до мене🥰💰")
         await message.reply_text("Ось їхні контакти: @honey_cupid 🥰")
         return
     await message.reply_text("Потрібно трохи часу, покращую якість зображення...")
     file_path = await client.download_media(message.photo)
     output_url = process_image(file_path)
-    await client.send_document(message.chat.id, output_url, caption="Ось готове зображення!")
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    file_name = f"enchanced_{current_time}.jpg"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(output_url) as resp:
+            if resp.status == 200:
+                with open(file_name, 'wb') as f:
+                    f.write(await resp.read())
+                await client.send_document(message.chat.id, file_name, caption="Ось готове зображення!")
+                os.remove(file_name)
 
 
 if __name__ == "__main__":
